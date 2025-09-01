@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Card Game </title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .score,
+        .moves {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .reset-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            aspect-ratio: 3/4;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s ease;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front,
+        .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .card-back {
+            background: white;
+            transform: rotateY(180deg);
+            font-size: 3em;
+            color: #333;
+        }
+
+        .card.matched .card-back {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .win-message {
+            text-align: center;
+            font-size: 1.5em;
+            color: #28a745;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 20px;
+            background: #d4edda;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .django-info {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .django-info h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .cards-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .game-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <h1>🎮 Django Memory Card Game</h1>
+
+        <div class="game-info">
+            <div class="score">Pairs Found: <span id="score">0</span>/8</div>
+            <div class="moves">Moves: <span id="moves">0</span></div>
+            <button class="reset-btn" onclick="resetGame()">New Game</button>
+        </div>
+
+        <div class="cards-grid" id="cards-container">
+
+        </div>
+
+        <div class="win-message" id="win-message">
+            🎉 Congratulations! You've matched all pairs! 🎉
+        </div>
+
+        <div class="django-info">
+            <h3>Powered by Mustafa</h3>
+            <p>This is a card game , Try to have some fun GL </p>
+        </div>
+    </div>
+
+    <script>
+        let cards = [];
+        let flippedCards = [];
+        let moves = 0;
+        let matchedPairs = 0;
+        let lockBoard = false;
+
+        const cardValues = ['💎', '🚀', '🌟', '🎯', '🎨', '🎭', '🎪', '🎮'];
+        const totalPairs = 8;
+
+        function initializeGame() {
+            const cardsContainer = document.getElementById('cards-container');
+            cardsContainer.innerHTML = '';
+
+            // Create pairs of cards
+            const gameCards = [...cardValues, ...cardValues];
+
+            // Shuffle cards
+            gameCards.sort(() => Math.random() - 0.5);
+
+            cards = [];
+            flippedCards = [];
+            moves = 0;
+            matchedPairs = 0;
+            lockBoard = false;
+
+            document.getElementById('score').textContent = '0';
+            document.getElementById('moves').textContent = '0';
+            document.getElementById('win-message').style.display = 'none';
+
+            gameCards.forEach((value, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">?</div>
+                        <div class="card-back">${value}</div>
+                    </div>
+                `;
+                card.addEventListener('click', () => flipCard(card, value));
+                cardsContainer.appendChild(card);
+                cards.push(card);
+            });
+        }
+
+        function flipCard(card, value) {
+            if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) {
+                return;
+            }
+
+            card.classList.add('flipped');
+            flippedCards.push({ card, value });
+
+            if (flippedCards.length === 2) {
+                moves++;
+                document.getElementById('moves').textContent = moves;
+                lockBoard = true;
+
+                setTimeout(checkMatch, 600);
+            }
+        }
+
+        function checkMatch() {
+            const [first, second] = flippedCards;
+
+            if (first.value === second.value) {
+                first.card.classList.add('matched');
+                second.card.classList.add('matched');
+                matchedPairs++;
+                document.getElementById('score').textContent = matchedPairs;
+
+                if (matchedPairs === totalPairs) {
+                    setTimeout(() => {
+                        document.getElementById('win-message').style.display = 'block';
+                    }, 500);
+                }
+            } else {
+                first.card.classList.remove('flipped');
+                second.card.classList.remove('flipped');
+            }
+
+            flippedCards = [];
+            lockBoard = false;
+        }
+
+        function resetGame() {
+            initializeGame();
+        }
+
+        // Initialize the game when page loads
+        window.onload = initializeGame;
+    </script>
+</body>
+
+</html>
